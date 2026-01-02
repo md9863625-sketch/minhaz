@@ -4,35 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link rel="stylesheet" href="stylesG.css">
+<link rel="stylesheet" href="stylesP.css">
+
 
 
 </head>
 <body>
 
-    <div class="content-wrap">
-        <h1 class="thumbnail-link2">
-            <img src="https://youtubetools.xyz/logo/youtube-thumbnail-grabber-logo.webp" alt="Logo" width="40" height="40">
-            YouTube Thumbnail Grabber
-        </h1>
+<div class="main-wrapper">
+    <h1 class="thumbnail-title-box">
+        <img src="https://youtubetools.xyz/logo/youtube-thumbnail-preview-logo.webp" alt="Logo">
+        YouTube Thumbnail Preview
+    </h1>
 
-        <p class="note">💡Paste your YouTube video link below.</p>
+    <p class="note">💡 Click <strong>Reset</strong> to clear all. Click <strong>Regenerate</strong> to reposition thumbnails.</p>
 
-<input type="text" id="youtubeLink" placeholder="Enter YouTube video URL" oninput="toggleRemoveButton()" />
-<button class="remove-btn" id="removeBtn" onclick="removeURL()" style="display:none;">🔄 Remove URL</button>
-<br />
-<button class="main-btn" onclick="generateThumbnail()">🧪 Grab Thumbnail</button>
+<div class="upload-box" id="uploadBox">
+  📤 Upload your JPG, PNG or WEB image (16:9)
+</div>
+<input type="file" id="thumbnailUpload" accept="image/*" style="display:none;">
 
-<div id="loading" style="display:none; margin-top:15px; color:#000000;">⏳ Loading...</div>
-<div id="output"></div>
+  <input type="text" id="videoTitle" maxlength="34" placeholder="Enter your video title (max 34 letters)">
+
+  <div>
+    <button class="btn" id="btnComputer">🖥️ Computer View</button>
+    <button class="btn" id="btnMobile">📱 Mobile View</button>
+    <button class="btn" id="btnRegenerate">🧪 Regenerate</button>
+    <button class="btn" id="btnReset">🔄 Reset</button>
+  </div>
+
+<div id="previews">
+  <div id="computerView"><div id="computerGrid"></div></div>
+  <div id="mobileView"><div class="header">YouTube</div><div id="mobileFeed"></div></div>
+</div>
 
 
-        <div id="output"></div>
-    </div>
+<script src="FRONT-END.js"></script>
 
 
-    <script src="FRONT-END.js"></script>
+
+
+
 
 </body>
 </html>
-

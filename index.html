@@ -1,38 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link rel="stylesheet" href="stylesF.css">
+<link rel="stylesheet" href="stylesG.css">
 
 
 </head>
 <body>
 
-<div class="content-wrapper">
-    <h1 class="gradient-text thumbnail-link2">
-      <img src="https://youtubetools.xyz/logo/youtube-keyword-finder-logo.webp" width="40" height="40" alt="Logo">
-      YouTube Keyword Finder
-    </h1>
+    <div class="content-wrap">
+        <h1 class="thumbnail-link2">
+            <img src="https://youtubetools.xyz/logo/youtube-thumbnail-grabber-logo.webp" alt="Logo" width="40" height="40">
+            YouTube Thumbnail Grabber
+        </h1>
 
-    <p class="note">💡 Give any keyword and find similar keywords for YouTube. Type a keyword like 'What is AI'</p>
+        <p class="note">💡Paste your YouTube video link below.</p>
 
-    <div class="input-wrap">
-      <input type="text" id="keywordInput" placeholder="Type a keyword like 'What is AI'">
+<input type="text" id="youtubeLink" placeholder="Enter YouTube video URL" oninput="toggleRemoveButton()" />
+<button class="remove-btn" id="removeBtn" onclick="removeURL()" style="display:none;">🔄 Remove URL</button>
+<br />
+<button class="main-btn" onclick="generateThumbnail()">🧪 Grab Thumbnail</button>
 
-      <div class="actions">
-        <button id="btnGet">🔍 Generate Keywords</button>
-        <button id="btnReset">🔄 Reset</button>
-      </div>
+<div id="loading" style="display:none; margin-top:15px; color:#000000;">⏳ Loading...</div>
+<div id="output"></div>
 
-      <div id="outputBox"></div>
-      <button id="btnCopy">📋 Copy Keywords</button>
+
+        <div id="output"></div>
     </div>
-</div>
 
 
-<script src="FRONT-END.js"></script>
+    <script src="FRONT-END.js.js"></script>
 
 </body>
 </html>

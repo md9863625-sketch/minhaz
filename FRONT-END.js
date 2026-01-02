@@ -1,145 +1,98 @@
-const inputBox = document.getElementById("keywordInput");
-const btnGet = document.getElementById("btnGet");
-const btnCopy = document.getElementById("btnCopy");
-const btnReset = document.getElementById("btnReset");
-const outputBox = document.getElementById("outputBox");
-
-// --- INJECT CSS ---
+// 1. Inject Styles
 const style = document.createElement('style');
-style.innerHTML = `
-    .loader-wrapper {
-        display: flex; flex-direction: column; align-items: center; 
-        justify-content: center; min-height: 200px; width: 100%; grid-column: 1 / span 2;
-    }
-    .spinner-container {
-        position: relative; width: 80px; height: 80px; 
-        display: flex; align-items: center; justify-content: center;
-    }
-    .loading-circle {
-        width: 100%; height: 100%;
-        border: 6px solid #f3f3f3;
-        border-top: 6px solid #000000;
-        border-radius: 50%;
-        position: absolute;
-        animation: spin-logic 1s linear infinite;
-    }
-    @keyframes spin-logic { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    #percent-text { font-weight: bold; font-size: 14px; color: #000; z-index: 10; text-align: center; }
-    
-    #copy-notice {
-        display: none; background: #333; color: #fff; text-align: center;
-        padding: 10px; border-radius: 8px; margin-bottom: 15px;
-        font-size: 14px; animation: slideDown 0.4s ease;
-    }
-    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-
-    .grid-active { display: grid !important; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; }
-    .kw-item { 
-        background: #f9f9f9; padding: 8px 12px; border: 1px solid #eee; 
-        border-radius: 6px; font-size: 14px; display: flex; 
-        justify-content: space-between; align-items: center;
-    }
-    .kw-text span { color: #ff0000; font-weight: bold; margin-right: 8px; }
-    .remove-btn {
-        background: #eee; color: #888; border: none; border-radius: 50%;
-        width: 20px; height: 20px; cursor: pointer; font-size: 12px;
-        display: flex; align-items: center; justify-content: center;
-    }
-    .remove-btn:hover { background: #ff0000; color: white; }
-    .error-msg { color: #ff0000; text-align: center; padding: 20px; grid-column: 1 / span 2; }
+style.textContent = `
+  #output { margin-top: 20px; display: flex; flex-direction: column; align-items: center; width: 100%; }
+  .result-container { background: #ffffff; border: 2px solid #000000; border-radius: 20px; padding: 20px 0; width: 90%; max-width: 400px; display: flex; flex-direction: column; align-items: center; gap: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); box-sizing: border-box; overflow: hidden; }
+  .thumb-item { display: flex; flex-direction: column; align-items: center; width: 100%; }
+  .size-max { width: 85%; } .size-sd { width: 70%; } .size-hq { width: 55%; } .size-mq { width: 40%; } .size-def { width: 25%; }
+  .thumb-item img { border-radius: 8px; border: 1px solid #000; margin-top: 5px; aspect-ratio: 16 / 9; width: 100%; height: auto; display: block; object-fit: cover; background: #000; }
+  .select-row { display: flex; align-items: center; gap: 6px; color: #000; font-family: sans-serif; font-weight: bold; font-size: 12px; }
+  .thumb-check { accent-color: #000; transform: scale(1.1); cursor: pointer; }
+  #mainDownloadBtn { background: #000; color: #fff; border: none; padding: 12px 0; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 14px; text-transform: uppercase; width: 85%; margin-top: 10px; transition: 0.2s ease-in-out; }
+  #mainDownloadBtn:hover { background: #333; }
 `;
 document.head.appendChild(style);
 
-const noticeEl = document.createElement('div');
-noticeEl.id = "copy-notice";
-noticeEl.innerHTML = "✨ Generation Complete! Scroll down to copy your keywords. 👇";
-outputBox.parentNode.insertBefore(noticeEl, outputBox);
-
-// --- FRONT-END LOGIC ---
-btnGet.addEventListener("click", async () => {
-    const seed = inputBox.value.trim();
-    if (!seed) return;
-
-    // Reset UI
-    btnGet.disabled = true;
-    btnCopy.style.display = "none";
-    noticeEl.style.display = "none";
-    outputBox.style.display = "block";
-    outputBox.classList.remove("grid-active");
-    
-    outputBox.innerHTML = `
-        <div class="loader-wrapper">
-            <div class="spinner-container">
-                <div class="loading-circle"></div>
-                <div id="percent-text">Deep<br>Search</div>
-            </div>
-            <div style="margin-top:15px; color:#666;">Analyzing YouTube Suggestions...</div>
-        </div>
-    `;
-
-    try {
-        const response = await fetch('/get-tags', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ keyword: seed })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || "Failed to fetch tags");
-        }
-
-        renderFinalResults(data.tags);
-    } catch (err) {
-        outputBox.innerHTML = `<div class="error-msg">⚠️ Error: ${err.message}</div>`;
-        btnGet.disabled = false;
-    }
-});
-
-function renderFinalResults(results) {
-    btnGet.disabled = false;
-    outputBox.innerHTML = "";
-    
-    if (results && results.length > 0) {
-        noticeEl.style.display = "block";
-        outputBox.classList.add("grid-active");
-        results.forEach((kw, i) => {
-            const div = document.createElement("div");
-            div.className = "kw-item";
-            div.innerHTML = `
-                <div class="kw-text"><span>${i + 1}.</span> ${kw}</div>
-                <button class="remove-btn" onclick="this.parentElement.remove(); updateNumbers();">×</button>
-            `;
-            outputBox.appendChild(div);
-        });
-        btnCopy.style.display = "inline-flex";
-        window.scrollTo({ top: noticeEl.offsetTop - 20, behavior: 'smooth' });
-    } else {
-        outputBox.innerHTML = "<div class='error-msg'>No results found. Try a different keyword.</div>";
-    }
+// 2. UI Logic Functions
+function removeURL() {
+  const input = document.getElementById('youtubeLink');
+  const removeBtn = document.getElementById('removeBtn');
+  const output = document.getElementById('output');
+  if (input) input.value = '';
+  if (removeBtn) removeBtn.style.display = 'none';
+  if (output) output.innerHTML = '';
 }
 
-window.updateNumbers = function() {
-    const items = document.querySelectorAll(".kw-text span");
-    items.forEach((span, index) => { span.innerText = (index + 1) + "."; });
-};
+async function generateThumbnail() {
+  const input = document.getElementById('youtubeLink').value.trim();
+  const outputDiv = document.getElementById('output');
+  const loadingDiv = document.getElementById('loading');
+  const removeBtn = document.getElementById('removeBtn');
 
-btnReset.addEventListener("click", () => {
-    inputBox.value = "";
-    outputBox.innerHTML = "";
-    outputBox.style.display = "none";
-    btnCopy.style.display = "none";
-    noticeEl.style.display = "none";
-    btnGet.disabled = false;
-});
+  if (!input) return;
 
-btnCopy.addEventListener("click", async () => {
-    const text = Array.from(document.querySelectorAll(".kw-item"))
-                      .map(el => el.querySelector(".kw-text").innerText.replace(/^\d+\.\s/, ""))
-                      .join(", ");
-    if(!text) return;
-    await navigator.clipboard.writeText(text);
-    btnCopy.innerText = "✅ List Copied";
-    setTimeout(() => btnCopy.innerText = "📋 Copy Keywords", 1500);
-});
+  removeBtn.style.display = 'inline-block';
+  loadingDiv.style.display = 'block';
+  outputDiv.innerHTML = '';
+
+  try {
+    // Replace direct logic with backend call
+    const response = await fetch('/get-tags', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: input })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || data.error) {
+      throw new Error(data.error || 'Failed to process link');
+    }
+
+    let html = '<div class="result-container">';
+    data.thumbnails.forEach((thumb, index) => {
+      html += `
+        <div class="thumb-item ${thumb.css}">
+          <div class="select-row">
+            <input type="checkbox" class="thumb-check" value="${thumb.url}" data-quality="${thumb.name}" id="chk${index}">
+            <label for="chk${index}">${thumb.name}</label>
+          </div>
+          <img src="${thumb.url}" onerror="this.parentElement.style.display='none'">
+        </div>`;
+    });
+
+    html += `<button id="mainDownloadBtn" onclick="downloadSelected('${data.videoId}')">Download Selected</button></div>`;
+    outputDiv.innerHTML = html;
+
+  } catch (err) {
+    outputDiv.innerHTML = `<p style="color:red; font-weight:bold; font-size:14px;">⚠️ ${err.message}</p>`;
+  } finally {
+    loadingDiv.style.display = 'none';
+  }
+}
+
+function downloadSelected(videoId) {
+  const selected = document.querySelectorAll('.thumb-check:checked');
+  if (selected.length === 0) {
+    alert("Please select at least one thumbnail.");
+    return;
+  }
+
+  selected.forEach((cb, index) => {
+    setTimeout(() => {
+      const imgUrl = cb.value;
+      const qualityName = cb.getAttribute('data-quality').replace(/\s+/g, '_');
+      
+      fetch(imgUrl)
+        .then(res => res.blob())
+        .then(blob => {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `${qualityName}_${videoId}.jpg`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        });
+    }, index * 700);
+  });
+}

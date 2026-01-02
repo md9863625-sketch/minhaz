@@ -3,7 +3,7 @@ const btnGet = document.getElementById('btnGet');
 const btnReset = document.getElementById('btnReset');
 const outputBox = document.getElementById('outputBox');
 
-// --- INJECT CSS ---
+// --- INJECT PROFESSIONAL CSS ---
 const style = document.createElement('style');
 style.innerHTML = `
     .loader-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; width: 100%; grid-column: 1 / span 2; }
@@ -30,15 +30,16 @@ noticeEl.id = "copy-notice";
 noticeEl.innerHTML = "✨ Extraction Complete! Scroll down to copy. 👇";
 outputBox.parentNode.insertBefore(noticeEl, outputBox);
 
-// Helper to extract ID from URL (Client side for instant validation)
+// --- HELPER FUNCTIONS ---
 function getYouTubeVideoId(url) {
     if (!url) return null;
+    url = url.trim();
     const patterns = [/v=([a-zA-Z0-9_-]{11})/, /\/embed\/([a-zA-Z0-9_-]{11})/, /youtu\.be\/([a-zA-Z0-9_-]{11})/, /\/v\/([a-zA-Z0-9_-]{11})/, /\/shorts\/([a-zA-Z0-9_-]{11})/];
     for (const p of patterns) {
-        const m = url.trim().match(p);
+        const m = url.match(p);
         if (m && m[1]) return m[1];
     }
-    const last = url.trim().slice(-11);
+    const last = url.slice(-11);
     return /^[A-Za-z0-9_-]{11}$/.test(last) ? last : null;
 }
 
@@ -88,6 +89,7 @@ window.updateNumbers = function() {
     document.querySelectorAll(".kw-text span").forEach((span, i) => { span.innerText = (i + 1) + "."; });
 };
 
+// --- MAIN LOGIC ---
 btnGet.addEventListener('click', async () => {
     const vid = getYouTubeVideoId(videoUrl.value);
     if (!vid) return alert('Invalid URL');
@@ -102,30 +104,28 @@ btnGet.addEventListener('click', async () => {
     outputBox.innerHTML = `<div class="loader-wrapper"><div class="spinner-container"><div class="loading-circle"></div><div id="percent-text">0%</div></div><div style="margin-top:15px; color:#666;">Extracting Video Tags...</div></div>`;
 
     try {
+        // UI Animation
         const percentLabel = document.getElementById("percent-text");
-        // Simulated progress bar
-        for (let p = 0; p <= 50; p += 10) {
-            percentLabel.innerText = p + "%";
-            await new Promise(r => setTimeout(r, 50));
-        }
+        const animPromise = (async () => {
+            for (let p = 0; p <= 100; p += 5) {
+                percentLabel.innerText = p + "%";
+                await new Promise(r => setTimeout(r, 30));
+            }
+        })();
 
-        // --- CALLING THE SERVERLESS BACKEND ---
-        const response = await fetch('/extract-tags', {
+        // Backend Call
+        const response = await fetch('/get-tags', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ videoId: vid })
         });
 
         const data = await response.json();
-        
-        if (!response.ok) throw new Error(data.error || 'Extraction failed');
+        await animPromise; // Ensure animation finishes
 
-        for (let p = 60; p <= 100; p += 10) {
-            percentLabel.innerText = p + "%";
-            await new Promise(r => setTimeout(r, 30));
-        }
-
+        if (data.error) throw new Error(data.error);
         renderResults(data.tags || []);
+
     } catch (err) {
         outputBox.innerHTML = `<div class="no-tags-error">Error: ${err.message}</div>`;
     } finally {

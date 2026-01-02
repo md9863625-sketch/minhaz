@@ -29,13 +29,12 @@ style.innerHTML = `
 `;
 document.head.appendChild(style);
 
-// Notification Bar Element
 const noticeEl = document.createElement('div');
 noticeEl.id = "copy-notice";
 noticeEl.innerHTML = "✨ Extraction Complete! Scroll down to copy. 👇";
 outputBox.parentNode.insertBefore(noticeEl, outputBox);
 
-// --- UI RENDERING FUNCTIONS ---
+// --- UI FUNCTIONS ---
 function renderResults(tags) {
     outputBox.innerHTML = "";
     if (!tags || tags.length === 0) {
@@ -57,7 +56,6 @@ function renderResults(tags) {
     copyBtn.innerText = "📋 Copy All Tags";
     copyBtn.onclick = copyAllTags;
     outputBox.parentNode.insertBefore(copyBtn, outputBox.nextSibling);
-
     window.scrollTo({ top: noticeEl.offsetTop - 20, behavior: 'smooth' });
 }
 
@@ -69,7 +67,6 @@ function copyAllTags() {
         if (span) span.remove();
         return clone.innerText.trim();
     });
-    
     const textToCopy = tagList.join(", ");
     navigator.clipboard.writeText(textToCopy).then(() => {
         const btn = document.getElementById('copy');
@@ -83,29 +80,26 @@ window.updateNumbers = function() {
     document.querySelectorAll(".kw-text span").forEach((span, i) => { span.innerText = (i + 1) + "."; });
 };
 
-// --- ACTION LISTENERS ---
+// --- CORE FETCH LOGIC ---
 btnGet.addEventListener('click', async () => {
     const urlValue = videoUrl.value.trim();
     if (!urlValue) return alert('Please enter a YouTube URL');
 
-    // Reset UI for new load
     const oldBtn = document.getElementById('copy');
     if (oldBtn) oldBtn.remove();
     btnGet.disabled = true;
     noticeEl.style.display = 'none';
     outputBox.style.display = 'block';
     outputBox.classList.remove("grid-active");
-    outputBox.innerHTML = `<div class="loader-wrapper"><div class="spinner-container"><div class="loading-circle"></div><div id="percent-text">0%</div></div><div style="margin-top:15px; color:#666;">Extracting Video Tags...</div></div>`;
+    outputBox.innerHTML = `<div class="loader-wrapper"><div class="spinner-container"><div class="loading-circle"></div><div id="percent-text">0%</div></div><div style="margin-top:15px; color:#666;">Contacting YouTube API...</div></div>`;
 
     try {
-        // Fake progress animation
         const percentLabel = document.getElementById("percent-text");
-        const progressInterval = setInterval(() => {
-            let current = parseInt(percentLabel.innerText);
-            if (current < 90) percentLabel.innerText = (current + 5) + "%";
-        }, 100);
+        let progress = 0;
+        const interval = setInterval(() => {
+            if (progress < 90) { progress += 10; percentLabel.innerText = progress + "%"; }
+        }, 150);
 
-        // Fetch from Backend
         const response = await fetch(BACKEND_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -113,12 +107,10 @@ btnGet.addEventListener('click', async () => {
         });
 
         const data = await response.json();
-        clearInterval(progressInterval);
+        clearInterval(interval);
         percentLabel.innerText = "100%";
 
-        if (!response.ok) {
-            throw new Error(data.error || 'Failed to fetch tags');
-        }
+        if (!response.ok) throw new Error(data.error || 'Server Error');
 
         renderResults(data.tags || []);
     } catch (err) {

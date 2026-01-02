@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Keyword Extractor</title>
+
+<link rel="stylesheet" href="stylesE.css">
+
+</head>
+<body>
+
+  <div class="main-content">
+    <h1 class="thumbnail-link2">
+      <img src="https://youtubetools.xyz/logo/youtube-keyword-extractor-logo.webp" alt="Logo">
+      YouTube Keyword Extractor
+    </h1>
+
+    <p class="note" aria-hidden="true" data-nosnippet role="presentation">💡 Paste a <strong>YouTube video URL</strong> below and <strong>extract tags & keyword suggestions</strong>.</p>
+
+<div class="input-wrap" aria-hidden="true" data-nosnippet role="presentation">
+  <input id="videoUrl" type="text" inputmode="url" autocomplete="off" placeholder="Enter YouTube video URL">
+
+  <div class="actions">
+    <button id="btnGet" class="btn btn-primary" type="button">🔍 Get Keywords</button>
+    <button id="btnReset" class="btn btn-primary" type="button">🔄 Reset</button>
+  </div>
+
+  <div style="height: 25px;"></div>
+
+  <div id="outputBox" aria-live="polite"></div>
+
+  <div style="height: 25px;"></div>
+</div>
+
+
+  <div id="outputBox" aria-live="polite"></div>
+
+<script>
+        const videoUrl = document.getElementById('videoUrl');
+        const btnGet = document.getElementById('btnGet');
+        const btnReset = document.getElementById('btnReset');
+        const outputBox = document.getElementById('outputBox');
+
+        // Notification element
+        const noticeEl = document.createElement('div');
+        noticeEl.id = "copy-notice";
+        noticeEl.innerHTML = "✨ Extraction Complete!";
+        outputBox.parentNode.insertBefore(noticeEl, outputBox);
+
+        async function callServerlessFunction(url) {
+            const response = await fetch('/get-tags', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Failed to fetch tags');
+            return data.tags;
+        }
+
+        function renderResults(tags) {
+            outputBox.innerHTML = "";
+            if (!tags || tags.length === 0) {
+                outputBox.innerHTML = `<div class="no-tags-error">⚠️ This video has NO tags.</div>`;
+                return;
+            }
+            outputBox.classList.add("grid-active");
+            noticeEl.style.display = "block";
+
+            tags.forEach((tag, i) => {
+                const div = document.createElement("div");
+                div.className = "kw-item";
+                div.innerHTML = `<div class="kw-text"><span>${i + 1}.</span> ${tag}</div><button class="remove-btn" onclick="this.parentElement.remove(); updateNumbers();">×</button>`;
+                outputBox.appendChild(div);
+            });
+
+            const copyBtn = document.createElement("button");
+            copyBtn.id = "copy";
+            copyBtn.innerText = "📋 Copy All Tags";
+            copyBtn.onclick = copyAllTags;
+            outputBox.parentNode.insertBefore(copyBtn, outputBox.nextSibling);
+        }
+
+        function copyAllTags() {
+            const tagElements = document.querySelectorAll(".kw-text");
+            const tagList = Array.from(tagElements).map(el => {
+                const clone = el.cloneNode(true);
+                clone.querySelector('span').remove();
+                return clone.innerText.trim();
+            });
+            navigator.clipboard.writeText(tagList.join(", ")).then(() => {
+                const btn = document.getElementById('copy');
+                btn.innerText = "✅ Copied!";
+                setTimeout(() => { btn.innerText = "📋 Copy All Tags"; }, 2000);
+            });
+        }
+
+        window.updateNumbers = () => {
+            document.querySelectorAll(".kw-text span").forEach((span, i) => { span.innerText = (i + 1) + "."; });
+        };
+
+        btnGet.addEventListener('click', async () => {
+            if (!videoUrl.value) return alert('Enter a URL');
+            
+            const oldBtn = document.getElementById('copy');
+            if (oldBtn) oldBtn.remove();
+
+            btnGet.disabled = true;
+            outputBox.innerHTML = `<div class="loader-wrapper"><div class="spinner-container"><div class="loading-circle"></div><div id="percent-text">0%</div></div></div>`;
+            
+            try {
+                // Fake progress loader for UX
+                let p = 0;
+                const interval = setInterval(() => {
+                    p += 10;
+                    if(document.getElementById("percent-text")) document.getElementById("percent-text").innerText = p + "%";
+                    if(p >= 90) clearInterval(interval);
+                }, 50);
+
+                const tags = await callServerlessFunction(videoUrl.value);
+                clearInterval(interval);
+                renderResults(tags);
+            } catch (err) {
+                outputBox.innerHTML = `<div class="no-tags-error">Error: ${err.message}</div>`;
+            } finally {
+                btnGet.disabled = false;
+            }
+        });
+
+        btnReset.addEventListener('click', () => {
+            videoUrl.value = '';
+            outputBox.innerHTML = '';
+            outputBox.classList.remove("grid-active");
+            noticeEl.style.display = 'none';
+            const oldBtn = document.getElementById('copy');
+            if (oldBtn) oldBtn.remove();
+        });
+    </script>
+</body>
+</html>

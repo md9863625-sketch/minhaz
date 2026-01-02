@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Keyword Extractor</title>
+
+<link rel="stylesheet" href="stylesE.css">
+<style>
+        /* CSS from your original code remains here */
+        .loader-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; width: 100%; grid-column: 1 / span 2; }
+        .spinner-container { position: relative; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; }
+        .loading-circle { width: 100%; height: 100%; border: 6px solid #f3f3f3; border-top: 6px solid #000; border-radius: 50%; position: absolute; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #percent-text { font-weight: bold; font-size: 18px; color: #000; z-index: 10; }
+        #copy-notice { display: none; background: #333; color: #fff; text-align: center; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; }
+        .grid-active { display: grid !important; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; }
+        .kw-item { background: #f9f9f9; padding: 8px 12px; border: 1px solid #eee; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+        .kw-text span { color: #ff0000; font-weight: bold; margin-right: 8px; }
+        .remove-btn { cursor: pointer; border: none; background: #eee; border-radius: 50%; width: 22px; height: 22px; }
+        #copy { display: block; margin: 20px auto; padding: 12px 18px; background: #000; color: #fff; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .no-tags-error { color: #ff0000; font-weight: bold; text-align: center; padding: 20px; border: 2px dashed #ff0000; }
+    </style>
+</head>
+<body>
+
+  <div class="main-content">
+    <h1 class="thumbnail-link2">
+      <img src="https://youtubetools.xyz/logo/youtube-keyword-extractor-logo.webp" alt="Logo">
+      YouTube Keyword Extractor
+    </h1>
+
+    <p class="note" aria-hidden="true" data-nosnippet role="presentation">💡 Paste a <strong>YouTube video URL</strong> below and <strong>extract tags & keyword suggestions</strong>.</p>
+
+<div class="input-wrap" aria-hidden="true" data-nosnippet role="presentation">
+  <input id="videoUrl" type="text" inputmode="url" autocomplete="off" placeholder="Enter YouTube video URL">
+
+  <div class="actions">
+    <button id="btnGet" class="btn btn-primary" type="button">🔍 Get Keywords</button>
+    <button id="btnReset" class="btn btn-primary" type="button">🔄 Reset</button>
+  </div>
+
+  <div style="height: 25px;"></div>
+
+  <div id="outputBox" aria-live="polite"></div>
+
+  <div style="height: 25px;"></div>
+</div>
+
+
+  <div id="outputBox" aria-live="polite"></div>
+
+<script>
+const videoUrl = document.getElementById('videoUrl');
+const btnGet = document.getElementById('btnGet');
+const btnReset = document.getElementById('btnReset');
+const outputBox = document.getElementById('outputBox');
+
+const noticeEl = document.createElement('div');
+noticeEl.id = "copy-notice";
+noticeEl.innerHTML = "✨ Extraction Complete!";
+outputBox.parentNode.insertBefore(noticeEl, outputBox);
+
+async function callServerlessFunction(url) {
+    // UPDATED: Points to the relative API route
+    const response = await fetch('/get-tags', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+    });
+    
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to fetch tags');
+    return data.tags;
+}
+
+function renderResults(tags) {
+    outputBox.innerHTML = "";
+    if (!tags || tags.length === 0) {
+        outputBox.innerHTML = `<div class="no-tags-error">⚠️ This video has NO tags.</div>`;
+        return;
+    }
+    outputBox.classList.add("grid-active");
+    noticeEl.style.display = "block";
+
+    tags.forEach((tag, i) => {
+        const div = document.createElement("div");
+        div.className = "kw-item";
+        div.innerHTML = `<div class="kw-text"><span>${i + 1}.</span> ${tag}</div><button class="remove-btn" onclick="this.parentElement.remove(); updateNumbers();">×</button>`;
+        outputBox.appendChild(div);
+    });
+
+    const copyBtn = document.createElement("button");
+    copyBtn.id = "copy";
+    copyBtn.innerText = "📋 Copy All Tags";
+    copyBtn.onclick = copyAllTags;
+    outputBox.parentNode.insertBefore(copyBtn, outputBox.nextSibling);
+}
+
+function copyAllTags() {
+    const tagElements = document.querySelectorAll(".kw-text");
+    const tagList = Array.from(tagElements).map(el => {
+        const clone = el.cloneNode(true);
+        clone.querySelector('span').remove();
+        return clone.innerText.trim();
+    });
+    navigator.clipboard.writeText(tagList.join(", ")).then(() => {
+        const btn = document.getElementById('copy');
+        btn.innerText = "✅ Copied!";
+        setTimeout(() => { btn.innerText = "📋 Copy All Tags"; }, 2000);
+    });
+}
+
+window.updateNumbers = () => {
+    document.querySelectorAll(".kw-text span").forEach((span, i) => { span.innerText = (i + 1) + "."; });
+};
+
+btnGet.addEventListener('click', async () => {
+    if (!videoUrl.value) return alert('Enter a URL');
+    
+    const oldBtn = document.getElementById('copy');
+    if (oldBtn) oldBtn.remove();
+
+    btnGet.disabled = true;
+    outputBox.innerHTML = `<div class="loader-wrapper"><div class="spinner-container"><div class="loading-circle"></div><div id="percent-text">0%</div></div></div>`;
+    
+    try {
+        let p = 0;
+        const interval = setInterval(() => {
+            p += 10;
+            if(document.getElementById("percent-text")) document.getElementById("percent-text").innerText = p + "%";
+            if(p >= 90) clearInterval(interval);
+        }, 50);
+
+        const tags = await callServerlessFunction(videoUrl.value);
+        clearInterval(interval);
+        renderResults(tags);
+    } catch (err) {
+        console.error("Fetch Error:", err);
+        outputBox.innerHTML = `<div class="no-tags-error">Error: ${err.message}</div>`;
+    } finally {
+        btnGet.disabled = false;
+    }
+});
+
+btnReset.addEventListener('click', () => {
+    videoUrl.value = '';
+    outputBox.innerHTML = '';
+    outputBox.classList.remove("grid-active");
+    noticeEl.style.display = 'none';
+    const oldBtn = document.getElementById('copy');
+    if (oldBtn) oldBtn.remove();
+});
+    </script>
+</body>
+</html>

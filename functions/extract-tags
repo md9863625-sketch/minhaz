@@ -1,0 +1,50 @@
+// Serverless Function (e.g., Vercel, Netlify, or Node.js backend)
+// This keeps your API keys or base URLs hidden from the browser.
+
+const WORKER_BASE = "https://api-server.youtubetools.xyz"; 
+
+export default async function handler(req, res) {
+    // Only allow POST requests
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    try {
+        const { videoId } = req.body;
+
+        if (!videoId) {
+            return res.status(400).json({ error: 'Video ID is required' });
+        }
+
+        // Securely fetch data from the internal/external API
+        const endpoint = `${WORKER_BASE}/videos?id=${encodeURIComponent(videoId)}`;
+        const apiRes = await fetch(endpoint);
+
+        if (!apiRes.ok) {
+            throw new Error(`External API returned ${apiRes.status}`);
+        }
+
+        const json = await apiRes.json();
+
+        if (!json.items || !json.items.length) {
+            return res.status(404).json({ error: 'Video not found' });
+        }
+
+        // Extract snippet and tags
+        const snippet = json.items[0].snippet;
+        const tags = snippet.tags || [];
+
+        // Return only the necessary data to the front-end
+        return res.status(200).json({ 
+            success: true, 
+            tags: tags 
+        });
+
+    } catch (error) {
+        console.error('Backend Error:', error.message);
+        return res.status(500).json({ 
+            success: false, 
+            error: 'Failed to extract tags. Please try again later.' 
+        });
+    }
+}

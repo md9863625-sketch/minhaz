@@ -1,3 +1,7 @@
+// --- CONFIGURATION ---
+const BACKEND_ENDPOINT = '/get-tags';
+
+// --- DOM ELEMENTS ---
 const videoUrl = document.getElementById('videoUrl');
 const btnGet = document.getElementById('btnGet');
 const btnReset = document.getElementById('btnReset');
@@ -25,24 +29,13 @@ style.innerHTML = `
 `;
 document.head.appendChild(style);
 
+// Notification Bar Element
 const noticeEl = document.createElement('div');
 noticeEl.id = "copy-notice";
 noticeEl.innerHTML = "✨ Extraction Complete! Scroll down to copy. 👇";
 outputBox.parentNode.insertBefore(noticeEl, outputBox);
 
-// --- HELPER FUNCTIONS ---
-function getYouTubeVideoId(url) {
-    if (!url) return null;
-    url = url.trim();
-    const patterns = [/v=([a-zA-Z0-9_-]{11})/, /\/embed\/([a-zA-Z0-9_-]{11})/, /youtu\.be\/([a-zA-Z0-9_-]{11})/, /\/v\/([a-zA-Z0-9_-]{11})/, /\/shorts\/([a-zA-Z0-9_-]{11})/];
-    for (const p of patterns) {
-        const m = url.match(p);
-        if (m && m[1]) return m[1];
-    }
-    const last = url.slice(-11);
-    return /^[A-Za-z0-9_-]{11}$/.test(last) ? last : null;
-}
-
+// --- UI RENDERING FUNCTIONS ---
 function renderResults(tags) {
     outputBox.innerHTML = "";
     if (!tags || tags.length === 0) {
@@ -64,6 +57,7 @@ function renderResults(tags) {
     copyBtn.innerText = "📋 Copy All Tags";
     copyBtn.onclick = copyAllTags;
     outputBox.parentNode.insertBefore(copyBtn, outputBox.nextSibling);
+
     window.scrollTo({ top: noticeEl.offsetTop - 20, behavior: 'smooth' });
 }
 
@@ -89,14 +83,14 @@ window.updateNumbers = function() {
     document.querySelectorAll(".kw-text span").forEach((span, i) => { span.innerText = (i + 1) + "."; });
 };
 
-// --- MAIN LOGIC ---
+// --- ACTION LISTENERS ---
 btnGet.addEventListener('click', async () => {
-    const vid = getYouTubeVideoId(videoUrl.value);
-    if (!vid) return alert('Invalid URL');
+    const urlValue = videoUrl.value.trim();
+    if (!urlValue) return alert('Please enter a YouTube URL');
 
+    // Reset UI for new load
     const oldBtn = document.getElementById('copy');
     if (oldBtn) oldBtn.remove();
-
     btnGet.disabled = true;
     noticeEl.style.display = 'none';
     outputBox.style.display = 'block';
@@ -104,28 +98,29 @@ btnGet.addEventListener('click', async () => {
     outputBox.innerHTML = `<div class="loader-wrapper"><div class="spinner-container"><div class="loading-circle"></div><div id="percent-text">0%</div></div><div style="margin-top:15px; color:#666;">Extracting Video Tags...</div></div>`;
 
     try {
-        // UI Animation
+        // Fake progress animation
         const percentLabel = document.getElementById("percent-text");
-        const animPromise = (async () => {
-            for (let p = 0; p <= 100; p += 5) {
-                percentLabel.innerText = p + "%";
-                await new Promise(r => setTimeout(r, 30));
-            }
-        })();
+        const progressInterval = setInterval(() => {
+            let current = parseInt(percentLabel.innerText);
+            if (current < 90) percentLabel.innerText = (current + 5) + "%";
+        }, 100);
 
-        // Backend Call
-        const response = await fetch('/get-tags', {
+        // Fetch from Backend
+        const response = await fetch(BACKEND_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ videoId: vid })
+            body: JSON.stringify({ url: urlValue })
         });
 
         const data = await response.json();
-        await animPromise; // Ensure animation finishes
+        clearInterval(progressInterval);
+        percentLabel.innerText = "100%";
 
-        if (data.error) throw new Error(data.error);
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to fetch tags');
+        }
+
         renderResults(data.tags || []);
-
     } catch (err) {
         outputBox.innerHTML = `<div class="no-tags-error">Error: ${err.message}</div>`;
     } finally {
